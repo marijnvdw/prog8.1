@@ -15,15 +15,6 @@ let recordedData = [];
 ml5.setBackend("webgl");
 let emotionInterval;
 
-const emotionCounts = {
-    happy: 0,
-    neutral: 0,
-    sad: 0,
-    angry: 0,
-    surprised: 0,
-};
-
-
 // Demo en AI Vertaald van typescript naar JS
 async function createFaceLandmarker() {
     const filesetResolver = await FilesetResolver.forVisionTasks(
@@ -185,74 +176,57 @@ function drawBlendShapes(el, blendShapes) {
 
 
 
-
-
-
-
-
-document.getElementById("predictEmotion").addEventListener("click", async () => {
+document.getElementById("saveEmotion").addEventListener("click", () => {
     if (!results || !results.faceBlendshapes || !results.faceBlendshapes.length) {
-        alert("Geen blendshape data beschikbaar van de webcam.");
+        alert("Geen mesh data beschikbaar.");
         return;
     }
 
-    const resultDiv = document.getElementById("emotionResult");
-    const nn = ml5.neuralNetwork({ task: 'classification', debug: true });
+    const selectedEmotion = document.getElementById("emotionSelect").value;
+    const Mesh = results.faceBlendshapes[0].categories.map(cat => cat.score);
 
-    const modelDetails = {
-        model: "model/model.json",
-        metadata: "model/model_meta.json",
-        weights: "model/model.weights.bin"
-    };
-
-    nn.load(modelDetails, () => {
-        if (emotionInterval) {
-            clearInterval(emotionInterval);
-        }
-
-        emotionInterval = setInterval(async () => {
-            if (!results || !results.faceBlendshapes || !results.faceBlendshapes.length) {
-                return;
-            }
-
-            const Vector = results.faceBlendshapes[0].categories.map(cat => cat.score);
-            try {
-                const prediction = await nn.classify(Vector);
-                const label = prediction[0].label;
-                const confidence = (prediction[0].confidence * 100).toFixed(1);
-                resultDiv.textContent = `Emotie: ${label} (${confidence}%)`;
-
-                if (emotionCounts[label] !== undefined) {
-                    emotionCounts[label]++;
-                    updateEmotionCountDisplay();
-                }
-
-            } catch (err) {
-                resultDiv.textContent = "Error";
-                console.error("Error:", err);
-            }
-        }, 2000); // 2 seconden
+    recordedData.push({
+        Data: Mesh,
+        Emotion: selectedEmotion,
     });
+
+    console.log("Gegevens opgeslagen:", recordedData[recordedData.length - 1]);
 });
 
-function updateEmotionCountDisplay() {
-    const list = document.getElementById("emotionList");
-    list.innerHTML = "";
-
-    for (const [emotion, count] of Object.entries(emotionCounts)) {
-        const emoji = {
-            happy: "😊",
-            neutral: "😐",
-            sad: "😢",
-            angry: "😠",
-            surprised: "😲"
-        }[emotion];
-
-        const li = document.createElement("li");
-        li.textContent = `${emoji} ${emotion}: ${count}`;
-        list.appendChild(li);
+document.getElementById("logData").addEventListener("click", () => {
+    if (recordedData.length === 0) {
+        console.log("Geen data opgeslagen.");
+    } else {
+        console.log("Opgeslagen data:", recordedData);
     }
-}
+});
+
+document.getElementById("trainAndDownload").addEventListener("click", async () => {
+    if (recordedData.length === 0) {
+        alert("Er is nog geen data");
+        return;
+    }
+
+    // 52 items
+    const nn = ml5.neuralNetwork({
+        inputs: 52,
+        outputs: 1,
+        task: 'classification',
+        debug: true,
+    });
+
+    recordedData = recordedData.sort(() => Math.random() - 0.5);
+
+    for (let item of recordedData) {
+        nn.addData(item.Data, {label: item.Emotion});
+        console.log([item.Data], {label: item.Emotion})
+    }
+
+    nn.normalizeData();
+    await nn.train({epochs: 30}, () => {
+    });
+    await nn.save('model');
+});
 
 
 

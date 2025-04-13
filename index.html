@@ -10,28 +10,15 @@
 </head>
 <script type="module" src="script.js"></script>
 <body>
-<h1>Gezicht checker</h1>
+<h1>Emotie checker</h1>
+<p>Om je emoties bij te houden begin je door op de knop "Camera Aanzetten" te klikken.</p>
+<p>Als de camera is ingeladen, kun je op de knop "Herken Emotie" klikken om je emoties bij te houden.</p>
 
 <section id="demos" class="invisible">
-
-    <div>
-        <label for="emotionSelect" class="block mb-2 font-medium">Kies een emotie:</label>
-        <select id="emotionSelect" class="w-full p-2 border rounded">
-            <option value="happy">😊 Blij</option>
-            <option value="neutral">😐 Neutraal</option>
-            <option value="sad">😢 Verdrietig</option>
-            <option value="angry">😠 Boos</option>
-            <option value="surprised">😲 Verrast</option>
-        </select>
-        <div class="flex space-x-2 mt-4">
-            <button id="saveEmotion" class="bg-blue-500 text-white px-4 py-2 rounded hover:bg-blue-600">📥 Data Opslaan
-            </button>
-            <button id="logData" class="bg-gray-500 text-white px-4 py-2 rounded hover:bg-gray-600">📋 Toon Data</button>
-        </div>
-    </div>
     <div class="flex space-x-2">
-        <button id="trainAndDownload" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">🧠 Train &
-            Download Model
+        <button id="webcamButton" class="mdc-button mdc-button--raised">
+            <span class="mdc-button__ripple"></span>
+            <span class="mdc-button__label">Camera Aanzetten</span>
         </button>
         <button id="predictEmotion" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">🤖 Herken
             Emotie
@@ -40,12 +27,13 @@
     <br>
     <div id="emotionResult" class="text-xl font-semibold text-center text-indigo-600"></div>
 
+    <div id="emotionCount" class="text-center mt-4">
+
+        <ul id="emotionList" style="list-style: none; padding: 0;"></ul>
+    </div>
 
     <div id="liveView" class="videoView">
-        <button id="webcamButton" class="mdc-button mdc-button--raised">
-            <span class="mdc-button__ripple"></span>
-            <span class="mdc-button__label">Camera Aanzetten</span>
-        </button>
+
         <div style="position: relative;">
             <video id="webcam" style="position: absolute" autoplay playsinline></video>
             <canvas class="output_canvas" id="output_canvas" style="position: absolute; left: 0px; top: 0px;"></canvas>
