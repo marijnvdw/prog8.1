@@ -207,11 +207,11 @@ document.getElementById("trainAndDownload").addEventListener("click", async () =
         return;
     }
 
-    // 52 items
     const nn = ml5.neuralNetwork({
         inputs: 52,
         outputs: 1,
         task: 'classification',
+        hiddenUnits: [16, 8],  // Hidden layers
         debug: true,
     });
 

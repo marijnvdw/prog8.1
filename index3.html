@@ -8,7 +8,7 @@
     <link rel="stylesheet" href="style.css">
 
 </head>
-<script type="module" src="script.js"></script>
+<script type="module" src="script3.js"></script>
 <body>
 <h1>Emotie checker</h1>
 <p>Om je emoties bij te houden begin je door op de knop "Camera Aanzetten" te klikken.</p>
@@ -20,15 +20,23 @@
             <span class="mdc-button__ripple"></span>
             <span class="mdc-button__label">Camera Aanzetten</span>
         </button>
-        <button id="predictEmotion" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">🤖 Herken
-            Emotie
+
+        <button id="verifyData" class="bg-purple-500 text-white px-4 py-2 rounded hover:bg-purple-600">Verifier data
         </button>
     </div>
     <br>
     <div id="emotionResult" class="text-xl font-semibold text-center text-indigo-600"></div>
 
     <div id="emotionCount" class="text-center mt-4">
+
         <ul id="emotionList" style="list-style: none; padding: 0;"></ul>
+
+        <div id="metrics" class="mt-6">
+            <h2 class="text-lg font-bold">Model Evaluatie</h2>
+            <p id="accuracyDisplay" class="mb-2"></p>
+            <div id="confusionMatrixContainer"></div>
+        </div>
+
     </div>
 
     <div id="liveView" class="videoView">

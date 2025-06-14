@@ -185,72 +185,108 @@ function drawBlendShapes(el, blendShapes) {
 
 
 
+let verificationData = [];
+let verifierModel;
+let verifierReady = false;
 
+const storedData = localStorage.getItem("verificationData");
+if (storedData) {
+    verificationData = JSON.parse(storedData);
+    updateAccuracyAndMatrix();
+}
 
+async function loadVerifierModel() {
+    verifierModel = ml5.neuralNetwork({ task: 'classification', debug: false });
+    await new Promise((resolve) => {
+        verifierModel.load({
+            model: "model/model.json",
+            metadata: "model/model_meta.json",
+            weights: "model/model.weights.bin"
+        }, resolve);
+    });
+    verifierReady = true;
+}
 
+function updateAccuracyAndMatrix() {
+    localStorage.setItem("verificationData", JSON.stringify(verificationData));
 
+    const correctCount = verificationData.filter(d => d.actual === d.predicted).length;
+    const accuracy = (correctCount / verificationData.length * 100).toFixed(1);
 
-document.getElementById("predictEmotion").addEventListener("click", async () => {
+    document.getElementById("accuracyDisplay").textContent = `Accuracy: ${accuracy}% (${correctCount}/${verificationData.length})`;
+
+    const labels = ["happy", "neutral", "sad", "angry", "surprised"];
+    const matrix = {};
+
+    labels.forEach(actual => {
+        matrix[actual] = {};
+        labels.forEach(predicted => {
+            matrix[actual][predicted] = 0;
+        });
+    });
+
+    verificationData.forEach(({ actual, predicted }) => {
+        if (matrix[actual] && matrix[actual][predicted] !== undefined) {
+            matrix[actual][predicted]++;
+        }
+    });
+
+    const container = document.getElementById("confusionMatrixContainer");
+    const table = document.createElement("table");
+    table.className = "table-auto border-collapse border border-gray-300 mt-2";
+    let html = "<thead><tr><th>Matrix</th>";
+
+    labels.forEach(label => {
+        html += `<th class="px-2 py-1 border border-gray-300">${label}</th>`;
+    });
+    html += "</tr></thead><tbody>";
+
+    labels.forEach(actual => {
+        html += `<tr><td class="font-bold px-2 py-1 border border-gray-300">${actual}</td>`;
+        labels.forEach(predicted => {
+            const count = matrix[actual][predicted];
+            html += `<td class="border px-2 py-1 text-center">${count}</td>`;
+        });
+        html += "</tr>";
+    });
+
+    html += "</tbody>";
+    table.innerHTML = html;
+
+    container.innerHTML = "";
+    container.appendChild(table);
+}
+
+document.getElementById("verifyData").addEventListener("click", async () => {
+    if (!verifierReady) {
+        await loadVerifierModel();
+    }
+
     if (!results || !results.faceBlendshapes || !results.faceBlendshapes.length) {
-        alert("Geen blendshape data beschikbaar van de webcam.");
+        alert("Geen data beschikbaar.");
         return;
     }
 
-    const resultDiv = document.getElementById("emotionResult");
-    const nn = ml5.neuralNetwork({ task: 'classification', debug: true });
+    const vector = results.faceBlendshapes[0].categories.map(cat => cat.score);
 
-    const modelDetails = {
-        model: "model/model.json",
-        metadata: "model/model_meta.json",
-        weights: "model/model.weights.bin"
-    };
+    try {
+        const prediction = await verifierModel.classify(vector);
+        const predictedLabel = prediction[0].label;
 
-    nn.load(modelDetails, () => {
-        if (emotionInterval) {
-            clearInterval(emotionInterval);
+        const correct = confirm(`AI voorspelt: ${predictedLabel}\nWas dit correct? Klik op 'OK' voor ja, 'Annuleren' voor nee.`);
+
+        let actualLabel = predictedLabel;
+        if (!correct) {
+            actualLabel = prompt("Wat was de juiste emotie? (opties: happy, neutral, sad, angry, surprised)");
         }
 
-        emotionInterval = setInterval(async () => {
-            if (!results || !results.faceBlendshapes || !results.faceBlendshapes.length) {
-                return;
-            }
-
-            const Vector = results.faceBlendshapes[0].categories.map(cat => cat.score);
-            try {
-                const prediction = await nn.classify(Vector);
-                const label = prediction[0].label;
-                const confidence = (prediction[0].confidence * 100).toFixed(1);
-                resultDiv.textContent = `Emotie: ${label} (${confidence}%)`;
-
-                if (emotionCounts[label] !== undefined) {
-                    emotionCounts[label]++;
-                    updateEmotionCountDisplay();
-                }
-
-            } catch (err) {
-                resultDiv.textContent = "Error";
-                console.error("Error:", err);
-            }
-        }, 2000); // 2 seconden
-    });
-});
-
-function updateEmotionCountDisplay() {
-    const list = document.getElementById("emotionList");
-    list.innerHTML = "";
-
-    for (const [emotion, count] of Object.entries(emotionCounts)) {
-        const emoji = {
-            happy: "😊",
-            neutral: "😐",
-            sad: "😢",
-            angry: "😠",
-            surprised: "😲"
-        }[emotion];
-
-        const li = document.createElement("li");
-        li.textContent = `${emoji} ${emotion}: ${count}`;
-        list.appendChild(li);
+        if (actualLabel) {
+            verificationData.push({ actual: actualLabel, predicted: predictedLabel });
+            updateAccuracyAndMatrix();
+        }
+    } catch (err) {
+        console.error("Mislukt:", err);
+        alert("Er ging iets mis.");
     }
-}
+});
 
